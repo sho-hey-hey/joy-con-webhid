@@ -5,16 +5,13 @@
   "scripts": {
     "start": "npx http-server",
     "clean": "shx rm -rf ./dist && mkdir dist",
-    "lint": "npx eslint . --ext .js,.mjs --fix --ignore-pattern dist/ --ignore-pattern src/madgwick.js",
-    "build:index": "npx terser ./src/index.js --toplevel --comments /@license/ --ecma=8 -o ./dist/index.js",
-    "build:joycon": "npx terser ./src/joycon.js --toplevel --comments /@license/ --ecma=8 -o ./dist/joycon.js",
-    "build:parse": "npx terser ./src/parse.js --toplevel --comments /@license/ --ecma=8 -o ./dist/parse.js",
-    "build:madgwick": "npx terser ./src/madgwick.js --toplevel --comments /@license/ --ecma=8 -o ./dist/madgwick.js",
-    "build": "npm run clean && npm run build:index && npm run build:joycon && npm run build:parse && npm run build:madgwick",
-    "copyDeps": "shx cp ./node_modules/ahrs/Madgwick.js ./src/madgwick.js && shx sed -i 's/module.exports =/export/' ./src/madgwick.js",
-    "prepare": "npm run lint && npm run fix && npm run build && npm run copyDeps",
-    "fix": "npx prettier --write ."
+    "lint": "npx eslint . --ext .js,.ts,.mjs --fix --ignore-pattern dist/",
+    "build": "npm run build:ts & npm run build:dts",
+    "build:ts": "node ./build.js",
+    "build:dts": "tsc --emitDeclarationOnly",
+    "prepare": "npm run lint && npm run build"
   },
+  "types": "./dist/index.d.ts",
   "main": "./dist/index.js",
   "browser": "./dist/index.js",
   "exports": "./dist/index.js",
@@ -36,13 +33,14 @@
   },
   "homepage": "https://github.com/tomayac/joy-con-webhid#readme",
   "devDependencies": {
+    "@types/node": "^15.0.1",
+    "esbuild": "^0.12.1",
     "eslint": "^7.22.0",
     "eslint-config-google": "^0.14.0",
     "eslint-config-prettier": "^8.1.0",
     "http-server": "^0.12.3",
     "prettier": "^2.2.1",
     "shx": "^0.3.3",
-    "terser": "^5.6.0"
   },
   "eslintConfig": {
     "parserOptions": {
@@ -53,6 +51,8 @@
       "google",
       "prettier"
     ]
+    "terser": "^5.6.0",
+    "typescript": "^4.2.4"
   },
   "dependencies": {
     "ahrs": "^1.2.3"
