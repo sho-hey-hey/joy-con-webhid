@@ -1,6 +1,6 @@
-import { JoyConLeft, JoyConRight } from './joycon.js';
+import { JoyCon, JoyConLeft, JoyConRight } from './joycon';
 
-const connectedJoyCons = new Map();
+const connectedJoyCons = new Map<number | undefined, JoyCon>();
 
 navigator.hid.addEventListener('connect', async ({ device }) => {
   console.log(`HID connected: ${device.productName}`);
@@ -43,13 +43,16 @@ const connectJoyCon = async () => {
   }
 };
 
-const connectDevice = async (device) => {
-  let joyCon;
+const connectDevice = async (device: HIDDevice) => {
+  let joyCon: JoyCon;
   if (device.productId === 0x2006) {
     joyCon = new JoyConLeft(device);
   } else if (device.productId === 0x2007) {
     joyCon = new JoyConRight(device);
+  } else {
+    throw new Error("wrogn device!");
   }
+
   await joyCon.open();
   await joyCon.enableStandardFullMode();
   await joyCon.enableIMUMode();
