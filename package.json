@@ -1,60 +1,53 @@
 {
-  "name": "joy-con-webhid",
-  "version": "0.2.0",
-  "description": "Joy-Con over WebHID ",
+  "name": "joy-con-webhid-ts",
+  "version": "0.0.1",
+  "description": "Joy-Con over WebHID",
   "scripts": {
     "start": "npx http-server",
-    "clean": "shx rm -rf ./dist && mkdir dist",
-    "lint": "npx eslint . --ext .js,.mjs --fix --ignore-pattern dist/ --ignore-pattern src/madgwick.js",
-    "build:index": "npx terser ./src/index.js --toplevel --comments /@license/ --ecma=8 -o ./dist/index.js",
-    "build:joycon": "npx terser ./src/joycon.js --toplevel --comments /@license/ --ecma=8 -o ./dist/joycon.js",
-    "build:parse": "npx terser ./src/parse.js --toplevel --comments /@license/ --ecma=8 -o ./dist/parse.js",
-    "build:madgwick": "npx terser ./src/madgwick.js --toplevel --comments /@license/ --ecma=8 -o ./dist/madgwick.js",
-    "build": "npm run clean && npm run build:index && npm run build:joycon && npm run build:parse && npm run build:madgwick",
-    "copyDeps": "shx cp ./node_modules/ahrs/Madgwick.js ./src/madgwick.js && shx sed -i 's/module.exports =/export/' ./src/madgwick.js",
-    "prepare": "npm run lint && npm run fix && npm run build && npm run copyDeps",
-    "fix": "npx prettier --write ."
+    "clean": "shx rm -rf ./lib && mkdir lib",
+    "lint": "npx eslint . --ext .js,.ts,.mjs --fix --ignore-pattern lib/",
+    "build": "npm run build:ts & npm run build:dts",
+    "build:ts": "node ./build.js",
+    "build:dts": "tsc --emitDeclarationOnly",
+    "prepare": "npm run lint && npm run build"
   },
-  "main": "./dist/index.js",
-  "browser": "./dist/index.js",
-  "exports": "./dist/index.js",
-  "module": "./dist/index.js",
-  "unpkg": "./dist/index.js",
+  "types": "./lib/index.d.ts",
+  "main": "./lib/index.js",
+  "browser": "./lib/index.js",
+  "exports": "./lib/index.js",
+  "module": "./lib/index.js",
+  "unpkg": "./lib/index.js",
   "files": [
     "demo",
     "src",
-    "dist"
+    "lib"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tomayac/joy-con-webhid.git"
+    "url": "https://github.com/sho-hey-hey/joy-con-webhid.git"
   },
-  "author": "Thomas Steiner (tomac@google.com)",
+  "author": "Shohei Ono",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/tomayac/joy-con-webhid/issues"
+    "url": "https://github.com/sho-hey-hey/joy-con-webhid/issues"
   },
-  "homepage": "https://github.com/tomayac/joy-con-webhid#readme",
+  "homepage": "https://github.com/sho-hey-hey/joy-con-webhid#readme",
   "devDependencies": {
-    "eslint": "^7.22.0",
+    "@types/node": "^15.12.5",
+    "@typescript-eslint/eslint-plugin": "^4.28.0",
+    "@typescript-eslint/parser": "^4.28.0",
+    "esbuild": "^0.12.9",
+    "eslint": "^7.29.0",
     "eslint-config-google": "^0.14.0",
-    "eslint-config-prettier": "^8.1.0",
+    "eslint-config-prettier": "^8.3.0",
     "http-server": "^0.12.3",
-    "prettier": "^2.2.1",
+    "prettier": "^2.3.2",
     "shx": "^0.3.3",
-    "terser": "^5.6.0"
-  },
-  "eslintConfig": {
-    "parserOptions": {
-      "ecmaVersion": 2020,
-      "sourceType": "module"
-    },
-    "extends": [
-      "google",
-      "prettier"
-    ]
+    "terser": "^5.7.0",
+    "typescript": "^4.3.4"
   },
   "dependencies": {
+    "@types/w3c-web-hid": "^1.0.0",
     "ahrs": "^1.2.3"
   }
 }

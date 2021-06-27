@@ -1,14 +1,76 @@
-import * as PacketParser from './parse.js';
+/* eslint-disable require-jsdoc */
+/* eslint-disable valid-jsdoc */
+import {
+  parseInputReportID,
+  parseButtonStatus,
+  parseAnalogStick,
+  parseFilter,
+  parseTimer,
+  parseBatteryLevel,
+  parseConnectionInfo,
+  parseCompleteButtonStatus,
+  parseAnalogStickLeft,
+  parseAnalogStickRight,
+  parseVibrator,
+  parseAck,
+  parseSubcommandID,
+  parseSubcommandReplyData,
+  parseDeviceInfo,
+  parseAccelerometers,
+  parseGyroscopes,
+  calculateActualGyroscope,
+  calculateActualAccelerometer,
+  toQuaternion,
+  toEulerAngles,
+  toEulerAnglesQuaternion,
+} from './parse';
+import type {
+  Accelerometer,
+  AnalogStick,
+  Axis,
+  BatteryLevel,
+  ButtonStatus,
+  DeviceInfo,
+  EulerAngles,
+  Gyroscope,
+  Quaternion,
+  StatusWithHex,
+} from './parse';
+
+type BatteryLevelEvent = CustomEvent<BatteryLevel>;
+type DeviceInfoEvent = CustomEvent<DeviceInfo>;
+interface Packet {
+  inputReportID?: StatusWithHex;
+  buttonStatus?: Partial<ButtonStatus>;
+  analogStick?: StatusWithHex;
+  filter?: StatusWithHex;
+  timer?: StatusWithHex;
+  batteryLevel?: BatteryLevel;
+  connectionInfo?: StatusWithHex;
+  analogStickLeft?: AnalogStick;
+  analogStickRight?: AnalogStick;
+  vibrator?: StatusWithHex;
+  ack?: StatusWithHex;
+  subcommandID?: StatusWithHex;
+  subcommandReplyData?: StatusWithHex;
+  deviceInfo?: DeviceInfo;
+  accelerometers?: Accelerometer[];
+  gyroscopes?: Gyroscope[][];
+  actualAccelerometer?: Axis;
+  actualGyroscope?: {
+    dps: Axis;
+    rps: Axis;
+  };
+  actualOrientation?: EulerAngles;
+  actualOrientationQuaternion?: EulerAngles;
+  quaternion?: Quaternion;
+}
 
 /**
  * Concatenates two typed arrays.
- *
- * @param {Uint8Array} a
- * @param {Uint8Array} b
- * @return {Uint8Array}
  */
-const concatTypedArrays = (a, b) => {
-  const c = new a.constructor(a.length + b.length);
+const concatTypedArrays = (a: Uint8Array, b: Uint8Array) => {
+  const c = new Uint8Array(a.length + b.length);
   c.set(a, 0);
   c.set(b, a.length);
   return c;
@@ -20,14 +82,14 @@ const concatTypedArrays = (a, b) => {
  * @class JoyCon
  * @extends {EventTarget}
  */
-class JoyCon extends EventTarget {
+export class JoyCon extends EventTarget {
+  private device: HIDDevice;
   /**
    *Creates an instance of JoyCon.
-
    * @param {HIDDevice} device
    * @memberof JoyCon
    */
-  constructor(device) {
+  constructor(device: HIDDevice) {
     super();
     this.device = device;
   }
@@ -49,7 +111,7 @@ class JoyCon extends EventTarget {
    *
    * @memberof JoyCon
    */
-  async getRequestDeviceInfo() {
+  async getRequestDeviceInfo(): Promise<DeviceInfo> {
     const outputReportID = 0x01;
     const subcommand = [0x02];
     const data = [
@@ -67,13 +129,13 @@ class JoyCon extends EventTarget {
     await this.device.sendReport(outputReportID, new Uint8Array(data));
 
     return new Promise((resolve) => {
-      const onDeviceInfo = ({ detail: deviceInfo }) => {
-        this.removeEventListener('deviceinfo', onDeviceInfo);
+      const onDeviceInfo = ({ detail: deviceInfo }: DeviceInfoEvent) => {
+        this.removeEventListener('deviceinfo', onDeviceInfo as EventListener);
         delete deviceInfo._raw;
         delete deviceInfo._hex;
         resolve(deviceInfo);
       };
-      this.addEventListener('deviceinfo', onDeviceInfo);
+      this.addEventListener('deviceinfo', onDeviceInfo as EventListener);
     });
   }
 
@@ -82,7 +144,7 @@ class JoyCon extends EventTarget {
    *
    * @memberof JoyCon
    */
-  async getBatteryLevel() {
+  async getBatteryLevel(): Promise<BatteryLevel> {
     const outputReportID = 0x01;
     const subCommand = [0x50];
     const data = [
@@ -100,13 +162,16 @@ class JoyCon extends EventTarget {
     await this.device.sendReport(outputReportID, new Uint8Array(data));
 
     return new Promise((resolve) => {
-      const onBatteryLevel = ({ detail: batteryLevel }) => {
-        this.removeEventListener('batterylevel', onBatteryLevel);
+      const onBatteryLevel = ({ detail: batteryLevel }: BatteryLevelEvent) => {
+        this.removeEventListener(
+          'batterylevel',
+          onBatteryLevel as EventListener
+        );
         delete batteryLevel._raw;
         delete batteryLevel._hex;
         resolve(batteryLevel);
       };
-      this.addEventListener('batterylevel', onBatteryLevel);
+      this.addEventListener('batterylevel', onBatteryLevel as EventListener);
     });
   }
 
@@ -257,8 +322,8 @@ class JoyCon extends EventTarget {
    *
    * @memberof JoyCon
    */
-  async rumble(lowFrequency, highFrequency, amplitude) {
-    const clamp = (value, min, max) => {
+  async rumble(lowFrequency: number, highFrequency: number, amplitude: number) {
+    const clamp = (value: number, min: number, max: number) => {
       return Math.min(Math.max(value, min), max);
     };
     const outputReportID = 0x10;
@@ -276,7 +341,7 @@ class JoyCon extends EventTarget {
 
     const amp = clamp(amplitude, 0, 1);
 
-    let hfAmp;
+    let hfAmp = 0;
     if (amp == 0) {
       hfAmp = 0;
     } else if (amp < 0.117) {
@@ -303,7 +368,7 @@ class JoyCon extends EventTarget {
     data[3] = lf + ((lfAmp >>> 8) & 0xff);
     data[4] += lfAmp & 0xff;
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 4; ++i) {
       data[5 + i] = data[1 + i];
     }
 
@@ -316,30 +381,28 @@ class JoyCon extends EventTarget {
    * @param {*} event
    * @memberof JoyCon
    */
-  _onInputReport(event) {
-    let { data, reportId, device } = event;
+  _onInputReport(event: HIDInputReportEvent) {
+    const { data, reportId, device } = event;
 
     if (!data) {
       return;
     }
 
-    data = concatTypedArrays(
+    const d = concatTypedArrays(
       new Uint8Array([reportId]),
       new Uint8Array(data.buffer)
     );
-    const hexData = data.map((byte) => byte.toString(16));
-
-    let packet = {
-      inputReportID: PacketParser.parseInputReportID(data, hexData),
-    };
+    // @ts-expect-error
+    const hexData = d.map((byte) => byte.toString(16));
+    let packet: Packet = { inputReportID: parseInputReportID(d, hexData) };
 
     switch (reportId) {
       case 0x3f: {
         packet = {
           ...packet,
-          buttonStatus: PacketParser.parseButtonStatus(data, hexData),
-          analogStick: PacketParser.parseAnalogStick(data, hexData),
-          filter: PacketParser.parseFilter(data, hexData),
+          buttonStatus: parseButtonStatus(d, hexData),
+          analogStick: parseAnalogStick(d, hexData),
+          filter: parseFilter(d, hexData),
         };
         break;
       }
@@ -347,48 +410,38 @@ class JoyCon extends EventTarget {
       case 0x30: {
         packet = {
           ...packet,
-          timer: PacketParser.parseTimer(data, hexData),
-          batteryLevel: PacketParser.parseBatteryLevel(data, hexData),
-          connectionInfo: PacketParser.parseConnectionInfo(data, hexData),
-          buttonStatus: PacketParser.parseCompleteButtonStatus(data, hexData),
-          analogStickLeft: PacketParser.parseAnalogStickLeft(data, hexData),
-          analogStickRight: PacketParser.parseAnalogStickRight(data, hexData),
-          vibrator: PacketParser.parseVibrator(data, hexData),
+          timer: parseTimer(d, hexData),
+          batteryLevel: parseBatteryLevel(d, hexData),
+          connectionInfo: parseConnectionInfo(d, hexData),
+          buttonStatus: parseCompleteButtonStatus(d, hexData),
+          analogStickLeft: parseAnalogStickLeft(d, hexData),
+          analogStickRight: parseAnalogStickRight(d, hexData),
+          vibrator: parseVibrator(d, hexData),
         };
 
         if (reportId === 0x21) {
           packet = {
             ...packet,
-            ack: PacketParser.parseAck(data, hexData),
-            subcommandID: PacketParser.parseSubcommandID(data, hexData),
-            subcommandReplyData: PacketParser.parseSubcommandReplyData(
-              data,
-              hexData
-            ),
-            deviceInfo: PacketParser.parseDeviceInfo(data, hexData),
+            ack: parseAck(d, hexData),
+            subcommandID: parseSubcommandID(d, hexData),
+            subcommandReplyData: parseSubcommandReplyData(d, hexData),
+            deviceInfo: parseDeviceInfo(d),
           };
         }
 
         if (reportId === 0x30) {
-          const accelerometers = PacketParser.parseAccelerometers(
-            data,
-            hexData
-          );
-          const gyroscopes = PacketParser.parseGyroscopes(data, hexData);
-          const rps = PacketParser.calculateActualGyroscope(
+          const accelerometers = parseAccelerometers(d, hexData);
+          const gyroscopes = parseGyroscopes(d, hexData);
+          const rps = calculateActualGyroscope(
             gyroscopes.map((g) => g.map((v) => v.rps))
           );
-          const dps = PacketParser.calculateActualGyroscope(
+          const dps = calculateActualGyroscope(
             gyroscopes.map((g) => g.map((v) => v.dps))
           );
-          const acc = PacketParser.calculateActualAccelerometer(
+          const acc = calculateActualAccelerometer(
             accelerometers.map((a) => [a.x.acc, a.y.acc, a.z.acc])
           );
-          const quaternion = PacketParser.toQuaternion(
-            rps,
-            acc,
-            device.productId
-          );
+          const quaternion = toQuaternion(rps, acc, device?.productId || 0);
 
           packet = {
             ...packet,
@@ -396,18 +449,12 @@ class JoyCon extends EventTarget {
             gyroscopes,
             actualAccelerometer: acc,
             actualGyroscope: {
-              dps: dps,
-              rps: rps,
-            },
-            actualOrientation: PacketParser.toEulerAngles(
+              dps,
               rps,
-              acc,
-              device.productId
-            ),
-            actualOrientationQuaternion: PacketParser.toEulerAnglesQuaternion(
-              quaternion
-            ),
-            quaternion: quaternion,
+            },
+            actualOrientation: toEulerAngles(rps, acc, device.productId || 0),
+            actualOrientationQuaternion: toEulerAnglesQuaternion(quaternion),
+            quaternion,
           };
         }
         break;
@@ -428,8 +475,10 @@ class JoyCon extends EventTarget {
    * @param {*} deviceInfo
    * @memberof JoyCon
    */
-  _receiveDeviceInfo(deviceInfo) {
-    this.dispatchEvent(new CustomEvent('deviceinfo', { detail: deviceInfo }));
+  _receiveDeviceInfo(deviceInfo: DeviceInfo) {
+    this.dispatchEvent(
+      new CustomEvent<DeviceInfo>('deviceinfo', { detail: deviceInfo })
+    );
   }
 
   /**
@@ -438,11 +487,15 @@ class JoyCon extends EventTarget {
    * @param {*} batteryLevel
    * @memberof JoyCon
    */
-  _receiveBatteryLevel(batteryLevel) {
+  _receiveBatteryLevel(batteryLevel: BatteryLevel) {
     this.dispatchEvent(
-      new CustomEvent('batterylevel', { detail: batteryLevel })
+      new CustomEvent<BatteryLevel>('batterylevel', {
+        detail: batteryLevel,
+      })
     );
   }
+
+  _receiveInputEvent(_packet: Packet) {}
 }
 
 /**
@@ -457,7 +510,7 @@ class JoyConLeft extends JoyCon {
    * @param {HIDDevice} device
    * @memberof JoyConLeft
    */
-  constructor(device) {
+  constructor(device: HIDDevice) {
     super(device);
   }
 
@@ -467,17 +520,19 @@ class JoyConLeft extends JoyCon {
    * @param {*} packet
    * @memberof JoyConLeft
    */
-  _receiveInputEvent(packet) {
-    delete packet.buttonStatus.x;
-    delete packet.buttonStatus.y;
-    delete packet.buttonStatus.b;
-    delete packet.buttonStatus.a;
-    delete packet.buttonStatus.plus;
-    delete packet.buttonStatus.r;
-    delete packet.buttonStatus.zr;
-    delete packet.buttonStatus.home;
-    delete packet.buttonStatus.rightStick;
-
+  _receiveInputEvent(packet: Packet) {
+    const bs = packet.buttonStatus;
+    if (bs) {
+      delete bs.x;
+      delete bs.y;
+      delete bs.b;
+      delete bs.a;
+      delete bs.plus;
+      delete bs.r;
+      delete bs.zr;
+      delete bs.home;
+      delete bs.rightStick;
+    }
     this.dispatchEvent(new CustomEvent('hidinput', { detail: packet }));
   }
 }
@@ -494,7 +549,7 @@ class JoyConRight extends JoyCon {
    * @param {HIDDevice} device
    * @memberof JoyConRight
    */
-  constructor(device) {
+  constructor(device: HIDDevice) {
     super(device);
   }
 
@@ -504,17 +559,19 @@ class JoyConRight extends JoyCon {
    * @param {*} packet
    * @memberof JoyConRight
    */
-  _receiveInputEvent(packet) {
-    delete packet.buttonStatus.up;
-    delete packet.buttonStatus.down;
-    delete packet.buttonStatus.left;
-    delete packet.buttonStatus.right;
-    delete packet.buttonStatus.minus;
-    delete packet.buttonStatus.l;
-    delete packet.buttonStatus.zl;
-    delete packet.buttonStatus.capture;
-    delete packet.buttonStatus.leftStick;
-
+  _receiveInputEvent(packet: Packet) {
+    const bs = packet.buttonStatus;
+    if (bs) {
+      delete bs.up;
+      delete bs.down;
+      delete bs.left;
+      delete bs.right;
+      delete bs.minus;
+      delete bs.l;
+      delete bs.zl;
+      delete bs.capture;
+      delete bs.leftStick;
+    }
     this.dispatchEvent(new CustomEvent('hidinput', { detail: packet }));
   }
 }

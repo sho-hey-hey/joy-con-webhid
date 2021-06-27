@@ -1,13 +1,97 @@
-import { Madgwick } from './madgwick.js';
+import Ahrs from 'ahrs';
 
-const leftMadgwick = new Madgwick(10);
-const rightMadgwick = new Madgwick(10);
+export interface Axis {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface Quaternion extends Axis {
+  w: number;
+}
+
+export interface StatusWithHex {
+  _raw?: Uint8Array;
+  _hex?: Uint8Array;
+}
+
+interface Version {
+  major: number;
+  minor: number;
+}
+
+export interface DeviceInfo extends StatusWithHex {
+  firmwareVersion: Version;
+  type: string | undefined;
+  macAddress: string;
+  spiColorInUse: boolean;
+}
+
+export interface BatteryLevel extends StatusWithHex {
+  level: string;
+}
+
+export interface AnalogStick extends StatusWithHex {
+  horizontal: string;
+  vertical: string;
+}
+
+interface Acceleration extends StatusWithHex {
+  acc: number;
+}
+
+export interface Accelerometer {
+  x: Acceleration;
+  y: Acceleration;
+  z: Acceleration;
+}
+
+export interface Gyroscope extends StatusWithHex {
+  dps: number;
+  rps: number;
+}
+
+export interface EulerAngles {
+  alpha: string;
+  beta: string;
+  gamma: string;
+}
+
+export interface ButtonStatus extends StatusWithHex {
+  y: boolean;
+  x: boolean;
+  b: boolean;
+  a: boolean;
+  r: boolean;
+  zr: boolean;
+  down: boolean;
+  up: boolean;
+  right: boolean;
+  left: boolean;
+  l: boolean;
+  zl: boolean;
+  sr: boolean;
+  sl: boolean;
+  minus: boolean;
+  plus: boolean;
+  rightStick: boolean;
+  leftStick: boolean;
+  home: boolean;
+  capture: boolean;
+  chargingGrip: boolean;
+}
+
+const leftMadgwick = new Ahrs({ sampleInterval: 10 });
+const rightMadgwick = new Ahrs({ sampleInterval: 10 });
 const rad2deg = 180.0 / Math.PI;
 
 /* eslint-disable require-jsdoc */
 
-function baseSum(array, iteratee) {
-  let result;
+function baseSum(
+  array: number[],
+  iteratee: (v: number | undefined) => number | undefined
+) {
+  let result = 0;
 
   for (const value of array) {
     const current = iteratee(value);
@@ -18,17 +102,20 @@ function baseSum(array, iteratee) {
   return result;
 }
 
-function mean(array) {
+function mean(array: number[]) {
   return baseMean(array, (value) => value);
 }
 
-function baseMean(array, iteratee) {
+function baseMean(
+  array: number[],
+  iteratee: (v: number | undefined) => number | undefined
+) {
   const length = array == null ? 0 : array.length;
   return length ? baseSum(array, iteratee) / length : NaN;
 }
 
-function calculateBatteryLevel(value) {
-  let level;
+function calculateBatteryLevel(value: Uint8Array) {
+  let level = '';
   switch (value[0]) {
     case 8:
       level = 'full';
@@ -52,13 +139,20 @@ function calculateBatteryLevel(value) {
   return level;
 }
 
-const ControllerType = {
+const ControllerType: { [index: number]: string | undefined } = {
   0x1: 'Left Joy-Con',
   0x2: 'Right Joy-Con',
   0x3: 'Pro Controller',
-};
+} as const;
 
-const lastValues = {
+interface Rotation {
+  timestamp: number | null;
+  alpha: number;
+  beta: number;
+  gamma: number;
+}
+
+const lastValues: { [index: number]: Rotation | undefined } = {
   8198: {
     timestamp: null,
     alpha: 0,
@@ -71,7 +165,7 @@ const lastValues = {
     beta: 0,
     gamma: 0,
   },
-};
+} as const;
 const bias = 0.75;
 const zeroBias = 0.0125;
 
@@ -89,12 +183,17 @@ const scale = Math.PI / 2;
  * @param {*} productId
  * @return {Object}
  */
-export function toEulerAngles(gyroscope, accelerometer, productId) {
+export function toEulerAngles(
+  gyroscope: Axis,
+  accelerometer: Axis,
+  productId: number
+): EulerAngles | undefined {
   const now = Date.now();
-  const dt = lastValues[productId].timestamp
-    ? (now - lastValues[productId].timestamp) / 1000
-    : 0;
-  lastValues[productId].timestamp = now;
+  const value = lastValues[productId];
+  if (!value) return;
+
+  const dt = value.timestamp ? (now - value.timestamp) / 1000 : 0;
+  value.timestamp = now;
 
   // Treat the acceleration vector as an orientation vector by normalizing it.
   // Keep in mind that if the device is flipped, the vector will just be
@@ -104,37 +203,30 @@ export function toEulerAngles(gyroscope, accelerometer, productId) {
     accelerometer.x ** 2 + accelerometer.y ** 2 + accelerometer.z ** 2
   );
 
-  lastValues[productId].alpha =
-    (1 - zeroBias) * (lastValues[productId].alpha + gyroscope.z * dt);
+  value.alpha = (1 - zeroBias) * (value.alpha + gyroscope.z * dt);
   if (norm !== 0) {
-    lastValues[productId].beta =
-      bias * (lastValues[productId].beta + gyroscope.x * dt) +
+    value.beta =
+      bias * (value.beta + gyroscope.x * dt) +
       (1.0 - bias) * ((accelerometer.x * scale) / norm);
-    lastValues[productId].gamma =
-      bias * (lastValues[productId].gamma + gyroscope.y * dt) +
+    value.gamma =
+      bias * (value.gamma + gyroscope.y * dt) +
       (1.0 - bias) * ((accelerometer.y * -scale) / norm);
   }
   return {
     alpha:
       // ToDo: I could only get this to work with a magic multiplier (430).
       productId === 0x2006
-        ? (
-            (((-1 * (lastValues[productId].alpha * 180)) / Math.PI) * 430) %
-            90
-          ).toFixed(6)
-        : (
-            (((lastValues[productId].alpha * 180) / Math.PI) * 430) %
-            360
-          ).toFixed(6),
-    beta: ((-1 * (lastValues[productId].beta * 180)) / Math.PI).toFixed(6),
+        ? ((((-1 * (value.alpha * 180)) / Math.PI) * 430) % 90).toFixed(6)
+        : ((((value.alpha * 180) / Math.PI) * 430) % 360).toFixed(6),
+    beta: ((-1 * (value.beta * 180)) / Math.PI).toFixed(6),
     gamma:
       productId === 0x2006
-        ? ((-1 * (lastValues[productId].gamma * 180)) / Math.PI).toFixed(6)
-        : ((lastValues[productId].gamma * 180) / Math.PI).toFixed(6),
+        ? ((-1 * (value.gamma * 180)) / Math.PI).toFixed(6)
+        : ((value.gamma * 180) / Math.PI).toFixed(6),
   };
 }
 
-export function toEulerAnglesQuaternion(q) {
+export function toEulerAnglesQuaternion(q: Quaternion): EulerAngles {
   const ww = q.w * q.w;
   const xx = q.x * q.x;
   const yy = q.y * q.y;
@@ -150,7 +242,11 @@ export function toEulerAnglesQuaternion(q) {
   };
 }
 
-export function toQuaternion(gyro, accl, productId) {
+export function toQuaternion(
+  gyro: Axis,
+  accl: Axis,
+  productId: number
+): Quaternion {
   if (productId === 0x2006) {
     leftMadgwick.update(gyro.x, gyro.y, gyro.z, accl.x, accl.y, accl.z);
     return leftMadgwick.getQuaternion();
@@ -164,7 +260,7 @@ export function toQuaternion(gyro, accl, productId) {
  * @param {Buffer} value
  * @return {Number}
  */
-function toAcceleration(value) {
+function toAcceleration(value: Uint8Array) {
   const view = new DataView(value.buffer);
   return parseFloat((0.000244 * view.getInt16(0, true)).toFixed(6));
 }
@@ -174,7 +270,7 @@ function toAcceleration(value) {
  * @param {Buffer} value
  * @return {Number}
  */
-function toDegreesPerSecond(value) {
+function toDegreesPerSecond(value: Uint8Array) {
   const view = new DataView(value.buffer);
   return parseFloat((0.06103 * view.getInt16(0, true)).toFixed(6));
 }
@@ -184,24 +280,24 @@ function toDegreesPerSecond(value) {
  * @param {Buffer} value
  * @return {Number}
  */
-function toRevolutionsPerSecond(value) {
+function toRevolutionsPerSecond(value: Uint8Array) {
   const view = new DataView(value.buffer);
   return parseFloat((0.0001694 * view.getInt16(0, true)).toFixed(6));
 }
 
-export function parseDeviceInfo(rawData, data) {
+export function parseDeviceInfo(rawData: Uint8Array): DeviceInfo {
   const bytes = rawData.slice(15, 15 + 11);
   const firmwareMajorVersionRaw = bytes.slice(0, 1)[0]; // index 0
   const firmwareMinorVersionRaw = bytes.slice(1, 2)[0]; // index 1
   const typeRaw = bytes.slice(2, 3); // index 2
   const macAddressRaw = bytes.slice(4, 10); // index 4-9
-  const macAddress = [];
+  const macAddress: string[] = [];
   macAddressRaw.forEach((number) => {
     macAddress.push(number.toString(16));
   });
   const spiColorInUseRaw = bytes.slice(11, 12); // index 11
 
-  const result = {
+  return {
     _raw: bytes.slice(0, 12),
     _hex: bytes.slice(0, 12),
     firmwareVersion: {
@@ -212,57 +308,64 @@ export function parseDeviceInfo(rawData, data) {
     macAddress: macAddress.join(':'),
     spiColorInUse: spiColorInUseRaw[0] === 0x1,
   };
-  return result;
 }
 
-export function parseInputReportID(rawData, data) {
-  const inputReportID = {
+export function parseInputReportID(
+  rawData: Uint8Array,
+  data: Uint8Array
+): StatusWithHex {
+  return {
     _raw: rawData.slice(0, 1), // index 0
     _hex: data.slice(0, 1),
   };
-
-  return inputReportID;
 }
 
-export function parseTimer(rawData, data) {
-  const timer = {
+export function parseTimer(
+  rawData: Uint8Array,
+  data: Uint8Array
+): StatusWithHex {
+  return {
     _raw: rawData.slice(1, 2), // index 1
     _hex: data.slice(1, 2),
   };
-
-  return timer;
 }
 
-export function parseBatteryLevel(rawData, data) {
-  const batteryLevel = {
+export function parseBatteryLevel(
+  rawData: Uint8Array,
+  data: Uint8Array
+): BatteryLevel {
+  return {
     _raw: rawData.slice(2, 3), // high nibble
     _hex: data.slice(2, 3),
     level: calculateBatteryLevel(data.slice(2, 3)),
   };
-
-  return batteryLevel;
 }
 
-export function parseConnectionInfo(rawData, data) {
-  const connectionInfo = {
+export function parseConnectionInfo(
+  rawData: Uint8Array,
+  data: Uint8Array
+): StatusWithHex {
+  return {
     _raw: rawData.slice(2, 3), // low nibble
     _hex: data.slice(2, 3),
   };
-
-  return connectionInfo;
 }
 
-export function parseButtonStatus(rawData, data) {
-  const buttonStatus = {
+export function parseButtonStatus(
+  rawData: Uint8Array,
+  data: Uint8Array
+): StatusWithHex {
+  return {
     _raw: rawData.slice(1, 3), // index 1,2
     _hex: data.slice(1, 3),
   };
-
-  return buttonStatus;
 }
 
-export function parseCompleteButtonStatus(rawData, data) {
-  const buttonStatus = {
+export function parseCompleteButtonStatus(
+  rawData: Uint8Array,
+  data: Uint8Array
+): ButtonStatus {
+  return {
     _raw: rawData.slice(3, 6), // index 3,4,5
     _hex: data.slice(3, 6),
     // Byte 3 (Right Joy-Con)
@@ -291,104 +394,110 @@ export function parseCompleteButtonStatus(rawData, data) {
     capture: Boolean(0x20 & rawData[4]),
     chargingGrip: Boolean(0x80 & rawData[4]),
   };
-
-  return buttonStatus;
 }
 
-export function parseAnalogStick(rawData, data) {
-  const analogStick = {
+export function parseAnalogStick(
+  rawData: Uint8Array,
+  data: Uint8Array
+): StatusWithHex {
+  return {
     _raw: rawData.slice(3, 4), // index 3
     _hex: data.slice(3, 4),
   };
-
-  return analogStick;
 }
 
-export function parseAnalogStickLeft(rawData, data) {
-  let horizontal = rawData[6] | ((rawData[7] & 0xf) << 8);
+export function parseAnalogStickLeft(
+  rawData: Uint8Array,
+  data: Uint8Array
+): AnalogStick {
+  const h = rawData[6] | ((rawData[7] & 0xf) << 8);
   // ToDo: This should use proper calibration data and not a magic number
   // (1995).
-  horizontal = ((horizontal / 1995 - 1) * 2).toFixed(1);
-  let vertical = ((rawData[7] >> 4) | (rawData[8] << 4)) * -1;
+  const horizontal = ((h / 1995 - 1) * 2).toFixed(1);
+  const v = ((rawData[7] >> 4) | (rawData[8] << 4)) * -1;
   // ToDo: This should use proper calibration data and not a magic number
   // (2220).
-  vertical = ((vertical / 2220 + 1) * 2).toFixed(1);
-  const analogStickLeft = {
+  const vertical = ((v / 2220 + 1) * 2).toFixed(1);
+  return {
     _raw: rawData.slice(6, 9), // index 6,7,8
     _hex: data.slice(6, 9),
-    horizontal: horizontal,
-    vertical: vertical,
+    horizontal,
+    vertical,
   };
-
-  return analogStickLeft;
 }
 
-export function parseAnalogStickRight(rawData, data) {
-  let horizontal = rawData[9] | ((rawData[10] & 0xf) << 8);
+export function parseAnalogStickRight(
+  rawData: Uint8Array,
+  data: Uint8Array
+): AnalogStick {
+  const h = rawData[9] | ((rawData[10] & 0xf) << 8);
   // ToDo: This should use proper calibration data and not a magic number
   // (1995).
-  horizontal = ((horizontal / 1995 - 1) * 2).toFixed(1);
-  let vertical = ((rawData[10] >> 4) | (rawData[11] << 4)) * -1;
+  const horizontal = ((h / 1995 - 1) * 2).toFixed(1);
+  const v = ((rawData[10] >> 4) | (rawData[11] << 4)) * -1;
   // ToDo: This should use proper calibration data and not a magic number
   // (2220).
-  vertical = ((vertical / 2220 + 1) * 2).toFixed(1);
-  const analogStickRight = {
+  const vertical = ((v / 2220 + 1) * 2).toFixed(1);
+  return {
     _raw: rawData.slice(9, 12), // index 9,10,11
     _hex: data.slice(9, 12),
-    horizontal: horizontal,
-    vertical: vertical,
+    horizontal,
+    vertical,
   };
-
-  return analogStickRight;
 }
 
-export function parseFilter(rawData, data) {
-  const filter = {
+export function parseFilter(
+  rawData: Uint8Array,
+  data: Uint8Array
+): StatusWithHex {
+  return {
     _raw: rawData.slice(4), // index 4
     _hex: data.slice(4),
   };
-
-  return filter;
 }
 
-export function parseVibrator(rawData, data) {
-  const vibrator = {
+export function parseVibrator(
+  rawData: Uint8Array,
+  data: Uint8Array
+): StatusWithHex {
+  return {
     _raw: rawData.slice(12, 13), // index 12
     _hex: data.slice(12, 13),
   };
-
-  return vibrator;
 }
 
-export function parseAck(rawData, data) {
-  const ack = {
+export function parseAck(rawData: Uint8Array, data: Uint8Array): StatusWithHex {
+  return {
     _raw: rawData.slice(13, 14), // index 13
     _hex: data.slice(13, 14),
   };
-
-  return ack;
 }
 
-export function parseSubcommandID(rawData, data) {
-  const subcommandID = {
+export function parseSubcommandID(
+  rawData: Uint8Array,
+  data: Uint8Array
+): StatusWithHex {
+  return {
     _raw: rawData.slice(14, 15), // index 14
     _hex: data.slice(14, 15),
   };
-
-  return subcommandID;
 }
 
-export function parseSubcommandReplyData(rawData, data) {
-  const subcommandReplyData = {
+export function parseSubcommandReplyData(
+  rawData: Uint8Array,
+  data: Uint8Array
+): StatusWithHex {
+  return {
     _raw: rawData.slice(15), // index 15 ~
     _hex: data.slice(15),
   };
-
-  return subcommandReplyData;
 }
 
-export function parseAccelerometers(rawData, data) {
-  const accelerometers = [
+export function parseAccelerometers(
+  rawData: Uint8Array,
+  data: Uint8Array
+): Accelerometer[] {
+  return [
     {
       x: {
         _raw: rawData.slice(13, 15), // index 13,14
@@ -441,12 +550,13 @@ export function parseAccelerometers(rawData, data) {
       },
     },
   ];
-
-  return accelerometers;
 }
 
-export function parseGyroscopes(rawData, data) {
-  const gyroscopes = [
+export function parseGyroscopes(
+  rawData: Uint8Array,
+  data: Uint8Array
+): Gyroscope[][] {
+  return [
     [
       {
         _raw: rawData.slice(19, 21), // index 19,20
@@ -508,11 +618,9 @@ export function parseGyroscopes(rawData, data) {
       },
     ],
   ];
-
-  return gyroscopes;
 }
 
-export function calculateActualAccelerometer(accelerometers) {
+export function calculateActualAccelerometer(accelerometers: number[][]) {
   const elapsedTime = 0.005 * accelerometers.length; // Spent 5ms to collect each data.
 
   const actualAccelerometer = {
@@ -530,9 +638,8 @@ export function calculateActualAccelerometer(accelerometers) {
   return actualAccelerometer;
 }
 
-export function calculateActualGyroscope(gyroscopes) {
+export function calculateActualGyroscope(gyroscopes: number[][]) {
   const elapsedTime = 0.005 * gyroscopes.length; // Spent 5ms to collect each data.
-
   const actualGyroscopes = [
     mean(gyroscopes.map((g) => g[0])),
     mean(gyroscopes.map((g) => g[1])),

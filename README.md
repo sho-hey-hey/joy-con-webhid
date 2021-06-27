@@ -1,29 +1,33 @@
-# Joy-Con WebHID
+# Joy-Con WebHID for TypeScript
 
+This repository forked [@tomayac](https://github.com/tomayac)'s [joy-con-webhid](https://github.com/tomayac/joy-con-webhid).
 A [WebHID](https://web.dev/hid) driver for
 [Nintendo Joy-Cons](https://en.wikipedia.org/wiki/Joy-Con) with support for all buttons, analog
 sticks, and the device's gyroscope and accelerometer sensors.
 
 ## Demo
+In preparation
 
-See the [live demo](https://tomayac.github.io/joy-con-webhid/demo/) of the driver.
+<!-- See the [live demo](https://tomayac.github.io/joy-con-webhid/demo/) of the driver.
 
 <img width="800" alt="Joy-Con WebHID demo showing two Joy-Cons slightly tilted with one of the analog sticks moved to the right on one Joy-Con and the 'A' button pressed on the other." src="https://user-images.githubusercontent.com/145676/101152193-01fc4f80-3623-11eb-8afd-50485f2807c6.png">
 
 Another demo is [Chrome Dino WebHID](https://github.com/tomayac/chrome-dino-webhid), where you
 can play the Chrome dino game 🦖 over WebHID by jumping with a Joy-Con controller in your pocket.
 
-[![Joy-Con WebHID Chrome dino demo](https://img.youtube.com/vi/HuhQXXgDnCQ/0.jpg)](https://www.youtube.com/watch?v=HuhQXXgDnCQ)
+[![Joy-Con WebHID Chrome dino demo](https://img.youtube.com/vi/HuhQXXgDnCQ/0.jpg)](https://www.youtube.com/watch?v=HuhQXXgDnCQ) -->
 
 ## Installation
+In preparation
 
-```bash
+<!-- ```bash
 npm install --save joy-con-webhid
-```
+``` -->
 
 ## Usage
+In preparation
 
-Make sure you have a pairing button on your page.
+<!-- Make sure you have a pairing button on your page.
 
 ```html
 <button class="connect" type="button">Connect Joy-Con</button>
@@ -35,7 +39,7 @@ which can happen after pairing, on page load when previously paired Joy-Cons are
 and when Joy-Cons wake up again after being idle.
 
 ```js
-import * as JoyCon from './node_modules/dist/index.js';
+import * as JoyCon from './node_modules/lib/index.js';
 
 // For the initial pairing of the Joy-Cons. They need to be paired one by one.
 // Once paired, Joy-Cons will be reconnected to on future page loads.
@@ -70,7 +74,7 @@ setInterval(async () => {
     joyCon.eventListenerAttached = true;
   }
 }, 2000);
-```
+``` -->
 
 ## Why not use the Gamepad API?
 
@@ -84,12 +88,7 @@ If all you need is this, then by all means
 
 ## Acknowledgements
 
-This project takes heavy inspiration from [@wazho](https://github.com/wazho)'s
-[ns-joycon](https://github.com/wazho/ns-joycon),
-which in turn is based on [@dekuNukem](https://github.com/dekuNukem)'s
-[Nintendo_Switch_Reverse_Engineering](https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering).
-The rumble code was contributed by
-[@baku89](https://github.com/baku89).
+This repository forked [@tomayac](https://github.com/tomayac)'s [joy-con-webhid](https://github.com/tomayac/joy-con-webhid).
 
 ## License
 
