@@ -1,7 +1,7 @@
 {
-  "name": "joy-con-webhid",
-  "version": "0.2.0",
-  "description": "Joy-Con over WebHID ",
+  "name": "joy-con-webhid-ts",
+  "version": "0.0.1",
+  "description": "Joy-Con over WebHID",
   "scripts": {
     "start": "npx http-server",
     "clean": "shx rm -rf ./lib && mkdir lib",
@@ -24,14 +24,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tomayac/joy-con-webhid.git"
+    "url": "https://github.com/sho-hey-hey/joy-con-webhid.git"
   },
-  "author": "Thomas Steiner (tomac@google.com)",
+  "author": "Shohei Ono",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/tomayac/joy-con-webhid/issues"
+    "url": "https://github.com/sho-hey-hey/joy-con-webhid/issues"
   },
-  "homepage": "https://github.com/tomayac/joy-con-webhid#readme",
+  "homepage": "https://github.com/sho-hey-hey/joy-con-webhid#readme",
   "devDependencies": {
     "@types/node": "^15.0.1",
     "@typescript-eslint/eslint-plugin": "^4.28.0",
