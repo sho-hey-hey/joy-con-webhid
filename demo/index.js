@@ -1,4 +1,4 @@
-import { connectJoyCon, connectedJoyCons, JoyConLeft } from '../dist/index.js';
+import { connectJoyCon, connectedJoyCons, JoyConLeft } from '../lib/index.js';
 
 const connectButton = document.querySelector('#connect-joy-cons');
 const debugLeft = document.querySelector('#debug-left');

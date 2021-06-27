@@ -10,7 +10,7 @@ const options = {
   target: 'es2016',
   format: 'esm',
   platform: 'browser',
-  outdir: path.resolve(__dirname, 'dist'),
+  outdir: path.resolve(__dirname, 'lib'),
   tsconfig: path.resolve(__dirname, 'tsconfig.json'),
 };
 

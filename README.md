@@ -35,7 +35,7 @@ which can happen after pairing, on page load when previously paired Joy-Cons are
 and when Joy-Cons wake up again after being idle.
 
 ```js
-import * as JoyCon from './node_modules/dist/index.js';
+import * as JoyCon from './node_modules/lib/index.js';
 
 // For the initial pairing of the Joy-Cons. They need to be paired one by one.
 // Once paired, Joy-Cons will be reconnected to on future page loads.

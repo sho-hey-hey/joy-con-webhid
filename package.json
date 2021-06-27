@@ -4,23 +4,23 @@
   "description": "Joy-Con over WebHID ",
   "scripts": {
     "start": "npx http-server",
-    "clean": "shx rm -rf ./dist && mkdir dist",
-    "lint": "npx eslint . --ext .js,.ts,.mjs --fix --ignore-pattern dist/",
+    "clean": "shx rm -rf ./lib && mkdir lib",
+    "lint": "npx eslint . --ext .js,.ts,.mjs --fix --ignore-pattern lib/",
     "build": "npm run build:ts & npm run build:dts",
     "build:ts": "node ./build.js",
     "build:dts": "tsc --emitDeclarationOnly",
     "prepare": "npm run lint && npm run build"
   },
-  "types": "./dist/index.d.ts",
-  "main": "./dist/index.js",
-  "browser": "./dist/index.js",
-  "exports": "./dist/index.js",
-  "module": "./dist/index.js",
-  "unpkg": "./dist/index.js",
+  "types": "./lib/index.d.ts",
+  "main": "./lib/index.js",
+  "browser": "./lib/index.js",
+  "exports": "./lib/index.js",
+  "module": "./lib/index.js",
+  "unpkg": "./lib/index.js",
   "files": [
     "demo",
     "src",
-    "dist"
+    "lib"
   ],
   "repository": {
     "type": "git",
