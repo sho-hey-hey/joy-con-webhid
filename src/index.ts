@@ -1,15 +1,26 @@
 import { JoyCon, JoyConLeft, JoyConRight } from './joycon';
 
+interface CustomEventMap {
+  "connect": CustomEvent<JoyCon>;
+  "disconnect": CustomEvent<number>;
+}
+
+export declare function addEventListener<K extends keyof CustomEventMap>(type: K, handler: (event: CustomEventMap[K]) => void): void;
+export declare function removeEventListener<K extends keyof CustomEventMap>(type: K, handler: (event: CustomEventMap[K]) => void): void;
+
 const connectedJoyCons = new Map<number | undefined, JoyCon>();
 
 navigator.hid.addEventListener('connect', async ({ device }) => {
   console.log(`HID connected: ${device.productName}`);
-  connectedJoyCons.set(device.productId, await connectDevice(device));
+  const joycon = await connectDevice(device);
+  connectedJoyCons.set(device.productId, joycon);
+  dispatchEvent(new CustomEvent('connect', { detail: joycon }));
 });
 
 navigator.hid.addEventListener('disconnect', ({ device }) => {
   console.log(`HID disconnected: ${device.productName}`);
   connectedJoyCons.delete(device.productId);
+  dispatchEvent(new CustomEvent('disconnect', { detail: device.productId }));
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
