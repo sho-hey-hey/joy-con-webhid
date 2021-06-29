@@ -76,6 +76,18 @@ const concatTypedArrays = (a: Uint8Array, b: Uint8Array) => {
   return c;
 };
 
+interface CustomEventMap {
+  "deviceinfo": DeviceInfoEvent;
+  "batterylevel": BatteryLevelEvent;
+}
+
+declare global {
+  export interface EventTarget {
+    addEventListener<K extends keyof CustomEventMap>(type: K, handler: (event: CustomEventMap[K]) => void): void;
+    removeEventListener<K extends keyof CustomEventMap>(type: K, handler: (event: CustomEventMap[K]) => void): void;
+  }
+}
+
 /**
  *
  *
@@ -84,8 +96,9 @@ const concatTypedArrays = (a: Uint8Array, b: Uint8Array) => {
  */
 export class JoyCon extends EventTarget {
   private device: HIDDevice;
+
   /**
-   *Creates an instance of JoyCon.
+   * Creates an instance of JoyCon.
    * @param {HIDDevice} device
    * @memberof JoyCon
    */
@@ -130,12 +143,12 @@ export class JoyCon extends EventTarget {
 
     return new Promise((resolve) => {
       const onDeviceInfo = ({ detail: deviceInfo }: DeviceInfoEvent) => {
-        this.removeEventListener('deviceinfo', onDeviceInfo as EventListener);
+        this.removeEventListener('deviceinfo', onDeviceInfo);
         delete deviceInfo._raw;
         delete deviceInfo._hex;
         resolve(deviceInfo);
       };
-      this.addEventListener('deviceinfo', onDeviceInfo as EventListener);
+      this.addEventListener('deviceinfo', onDeviceInfo);
     });
   }
 
@@ -165,13 +178,13 @@ export class JoyCon extends EventTarget {
       const onBatteryLevel = ({ detail: batteryLevel }: BatteryLevelEvent) => {
         this.removeEventListener(
           'batterylevel',
-          onBatteryLevel as EventListener
+          onBatteryLevel
         );
         delete batteryLevel._raw;
         delete batteryLevel._hex;
         resolve(batteryLevel);
       };
-      this.addEventListener('batterylevel', onBatteryLevel as EventListener);
+      this.addEventListener('batterylevel', onBatteryLevel);
     });
   }
 
