@@ -39,6 +39,7 @@ import type {
 
 type BatteryLevelEvent = CustomEvent<BatteryLevel>;
 type DeviceInfoEvent = CustomEvent<DeviceInfo>;
+type HIDInputEvent = CustomEvent<Packet>
 interface Packet {
   inputReportID?: StatusWithHex;
   buttonStatus?: Partial<ButtonStatus>;
@@ -79,6 +80,7 @@ const concatTypedArrays = (a: Uint8Array, b: Uint8Array) => {
 interface CustomEventMap {
   "deviceinfo": DeviceInfoEvent;
   "batterylevel": BatteryLevelEvent;
+  "hidinput": HIDInputEvent;
 }
 
 declare global {

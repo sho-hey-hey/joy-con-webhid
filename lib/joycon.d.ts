@@ -2,6 +2,7 @@
 import type { Accelerometer, AnalogStick, Axis, BatteryLevel, ButtonStatus, DeviceInfo, EulerAngles, Gyroscope, Quaternion, StatusWithHex } from './parse';
 declare type BatteryLevelEvent = CustomEvent<BatteryLevel>;
 declare type DeviceInfoEvent = CustomEvent<DeviceInfo>;
+declare type HIDInputEvent = CustomEvent<Packet>;
 interface Packet {
     inputReportID?: StatusWithHex;
     buttonStatus?: Partial<ButtonStatus>;
@@ -31,6 +32,7 @@ interface Packet {
 interface CustomEventMap {
     "deviceinfo": DeviceInfoEvent;
     "batterylevel": BatteryLevelEvent;
+    "hidinput": HIDInputEvent;
 }
 declare global {
     export interface EventTarget {
