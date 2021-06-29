@@ -1,5 +1,7 @@
 /// <reference types="w3c-web-hid" />
 import type { Accelerometer, AnalogStick, Axis, BatteryLevel, ButtonStatus, DeviceInfo, EulerAngles, Gyroscope, Quaternion, StatusWithHex } from './parse';
+declare type BatteryLevelEvent = CustomEvent<BatteryLevel>;
+declare type DeviceInfoEvent = CustomEvent<DeviceInfo>;
 interface Packet {
     inputReportID?: StatusWithHex;
     buttonStatus?: Partial<ButtonStatus>;
@@ -26,6 +28,16 @@ interface Packet {
     actualOrientationQuaternion?: EulerAngles;
     quaternion?: Quaternion;
 }
+interface CustomEventMap {
+    "deviceinfo": DeviceInfoEvent;
+    "batterylevel": BatteryLevelEvent;
+}
+declare global {
+    export interface EventTarget {
+        addEventListener<K extends keyof CustomEventMap>(type: K, handler: (event: CustomEventMap[K]) => void): void;
+        removeEventListener<K extends keyof CustomEventMap>(type: K, handler: (event: CustomEventMap[K]) => void): void;
+    }
+}
 /**
  *
  *
@@ -35,11 +47,15 @@ interface Packet {
 export declare class JoyCon extends EventTarget {
     private device;
     /**
-     *Creates an instance of JoyCon.
+     * Creates an instance of JoyCon.
      * @param {HIDDevice} device
      * @memberof JoyCon
      */
     constructor(device: HIDDevice);
+    /**
+     * Device opened status.
+     */
+    get opened(): boolean | undefined;
     /**
      * Opens the device.
      *
