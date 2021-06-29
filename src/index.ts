@@ -1,9 +1,8 @@
 import { JoyCon, JoyConLeft, JoyConRight } from './joycon';
 
 interface CustomEventMap {
-  
-  "connect": CustomEvent<JoyCon>;
-  "disconnect": CustomEvent<number>;
+  "joyConConnect": CustomEvent<JoyCon>;
+  "joyConDisconnect": CustomEvent<number>;
 }
 
 declare global {
@@ -19,13 +18,13 @@ navigator.hid.addEventListener('connect', async ({ device }) => {
   console.log(`HID connected: ${device.productName}`);
   const joycon = await connectDevice(device);
   connectedJoyCons.set(device.productId, joycon);
-  dispatchEvent(new CustomEvent('connect', { detail: joycon }));
+  dispatchEvent(new CustomEvent('joyConConnect', { detail: joycon }));
 });
 
 navigator.hid.addEventListener('disconnect', ({ device }) => {
   console.log(`HID disconnected: ${device.productName}`);
   connectedJoyCons.delete(device.productId);
-  dispatchEvent(new CustomEvent('disconnect', { detail: device.productId }));
+  dispatchEvent(new CustomEvent('joyConDisconnect', { detail: device.productId }));
 });
 
 document.addEventListener('DOMContentLoaded', async () => {

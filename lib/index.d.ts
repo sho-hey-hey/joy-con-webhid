@@ -1,7 +1,7 @@
 import { JoyCon, JoyConLeft, JoyConRight } from './joycon';
 interface CustomEventMap {
-    "connect": CustomEvent<JoyCon>;
-    "disconnect": CustomEvent<number>;
+    "joyConConnect": CustomEvent<JoyCon>;
+    "joyConDisconnect": CustomEvent<number>;
 }
 declare global {
     function addEventListener<K extends keyof CustomEventMap>(type: K, listener: (event: CustomEventMap[K]) => void): void;
