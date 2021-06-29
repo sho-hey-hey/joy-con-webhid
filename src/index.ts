@@ -1,12 +1,17 @@
 import { JoyCon, JoyConLeft, JoyConRight } from './joycon';
 
 interface CustomEventMap {
+  
   "connect": CustomEvent<JoyCon>;
   "disconnect": CustomEvent<number>;
 }
 
-export declare function addEventListener<K extends keyof CustomEventMap>(type: K, handler: (event: CustomEventMap[K]) => void): void;
-export declare function removeEventListener<K extends keyof CustomEventMap>(type: K, handler: (event: CustomEventMap[K]) => void): void;
+declare global {
+  // eslint-disable-next-line no-unused-vars
+  function addEventListener<K extends keyof CustomEventMap>(type: K, listener: (event: CustomEventMap[K]) => void): void;
+  // eslint-disable-next-line no-unused-vars
+  function removeEventListener<K extends keyof CustomEventMap>(type: K, listener: (event: CustomEventMap[K]) => void): void;
+}
 
 const connectedJoyCons = new Map<number | undefined, JoyCon>();
 
