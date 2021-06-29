@@ -108,6 +108,13 @@ export class JoyCon extends EventTarget {
   }
 
   /**
+   * Device opened status.
+   */
+  public get opened() {
+    return this.device.opened;
+  }
+
+  /**
    * Opens the device.
    *
    * @memberof JoyCon
