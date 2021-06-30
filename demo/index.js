@@ -1,12 +1,18 @@
 import { connectJoyCon, connectedJoyCons, JoyConLeft } from '../lib/index.js';
 
 const connectButton = document.querySelector('#connect-joy-cons');
+const disconnectButton = document.querySelector('#disconnect-joy-cons');
 const debugLeft = document.querySelector('#debug-left');
 const debugRight = document.querySelector('#debug-right');
 const showDebug = document.querySelector('#show-debug');
 const rootStyle = document.documentElement.style;
 
 connectButton.addEventListener('click', connectJoyCon);
+disconnectButton.addEventListener('click', () => {
+  connectedJoyCons.forEach(async (v) => {
+    await v.close();
+  });
+});
 
 const visualize = (joyCon, packet) => {
   if (!packet || !packet.actualOrientation) {
