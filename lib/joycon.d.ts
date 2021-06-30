@@ -48,6 +48,7 @@ declare global {
  */
 export declare class JoyCon extends EventTarget {
     private device;
+    private inputReport;
     /**
      * Creates an instance of JoyCon.
      * @param {HIDDevice} device
@@ -64,6 +65,7 @@ export declare class JoyCon extends EventTarget {
      * @memberof JoyCon
      */
     open(): Promise<void>;
+    close(): Promise<void>;
     /**
      * Requests information about the device.
      *

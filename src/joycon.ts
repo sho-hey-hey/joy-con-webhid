@@ -99,6 +99,8 @@ declare global {
 export class JoyCon extends EventTarget {
   private device: HIDDevice;
 
+  private inputReport: (event: HIDInputReportEvent) => void = () => undefined;
+
   /**
    * Creates an instance of JoyCon.
    * @param {HIDDevice} device
@@ -124,8 +126,16 @@ export class JoyCon extends EventTarget {
   async open() {
     if (!this.device.opened) {
       await this.device.open();
+      this.inputReport = this._onInputReport.bind(this);
+      this.device.addEventListener('inputreport', this.inputReport);
     }
-    this.device.addEventListener('inputreport', this._onInputReport.bind(this));
+  }
+
+  async close() {
+    if (this.device.opened) {
+      await this.device.close();
+      this.device.removeEventListener('inputreport', this.inputReport);
+    }
   }
 
   /**
